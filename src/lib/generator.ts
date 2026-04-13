@@ -258,10 +258,19 @@ async function callClaude(prompt: string, maxTokens: number): Promise<string> {
 async function runSection<T>(label: string, prompt: string, maxTokens: number): Promise<T> {
   console.log(`Hermes: generating ${label}...`)
   const start = Date.now()
-  const raw = await callClaude(prompt, maxTokens)
-  const parsed = JSON.parse(raw) as T
-  console.log(`Hermes: ${label} done in ${((Date.now() - start) / 1000).toFixed(1)}s`)
-  return parsed
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    try {
+      const raw = await callClaude(prompt, maxTokens)
+      const parsed = JSON.parse(raw) as T
+      console.log(`Hermes: ${label} done in ${((Date.now() - start) / 1000).toFixed(1)}s`)
+      return parsed
+    } catch (err: any) {
+      console.log(`Hermes: ${label} parse attempt ${attempt}/5 failed, retrying in 10s...`)
+      if (attempt === 5) throw err
+      await new Promise(r => setTimeout(r, 10000))
+    }
+  }
+  throw new Error(`${label} failed`)
 }
 
 // ─────────────────────────────────────────────────────────────────
