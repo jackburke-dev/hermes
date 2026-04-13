@@ -228,46 +228,40 @@ Return ONLY valid JSON in this exact format, no markdown fences:
 // ─────────────────────────────────────────────────────────────────
 
 async function callClaude(prompt: string, maxTokens: number): Promise<string> {
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: maxTokens,
-    tools: [{ type: "web_search_20250305", name: "web_search" }] as any,
-    messages: [{ role: 'user', content: prompt }],
-  })
-
-  const text = response.content
-    .filter(b => b.type === 'text')
-    .map(b => (b as { type: 'text'; text: string }).text)
-    .join('\n')
-    .trim()
-
-  // Extract JSON even if model adds surrounding text
-  const jsonMatch = text.match(/{[\s\S]*}/)
-  if (jsonMatch) return jsonMatch[0].trim()
-  // Strip markdown fences
-  return text
-    .replace(/^```json\s*/m, '')
-    .replace(/^```\s*/m, '')
-    .replace(/```\s*$/m, '')
-    .trim()
+  for (let attempt = 1; attempt <= 20; attempt++) {
+    try {
+      const response = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: maxTokens,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }] as any,
+        messages: [{ role: 'user', content: prompt }],
+      })
+      const text = response.content
+        .filter((b: any) => b.type === 'text')
+        .map((b: any) => b.text)
+        .join('\n')
+        .trim()
+      const jsonMatch = text.match(/\{[\s\S]*\}/)
+      if (jsonMatch) return jsonMatch[0].trim()
+      return text.replace(/^```json\s*/m, '').replace(/^```\s*/m, '').replace(/```\s*$/m, '').trim()
+    } catch (err: any) {
+      const retryAfter = parseInt(err?.headers?.['retry-after'] || '70', 10)
+      const waitSecs = Math.ceil(retryAfter * 1.1)
+      console.log(`Hermes: attempt ${attempt}/20 failed (${err?.status || err?.message}), waiting ${waitSecs}s...`)
+      if (attempt === 20) throw err
+      await new Promise(r => setTimeout(r, waitSecs * 1000))
+    }
+  }
+  throw new Error('callClaude failed after 20 attempts')
 }
 
 async function runSection<T>(label: string, prompt: string, maxTokens: number): Promise<T> {
   console.log(`Hermes: generating ${label}...`)
   const start = Date.now()
-  for (let attempt = 1; attempt <= 3; attempt++) {
-    try {
-      const raw = await callClaude(prompt, maxTokens)
-      const parsed = JSON.parse(raw) as T
-      console.log(`Hermes: ${label} done in ${((Date.now() - start) / 1000).toFixed(1)}s`)
-      return parsed
-    } catch (err) {
-      console.error(`Hermes: ${label} attempt ${attempt} failed:`, err)
-      if (attempt === 3) throw err
-      await new Promise(r => setTimeout(r, 65000))
-    }
-  }
-  throw new Error(`${label} failed after 3 attempts`)
+  const raw = await callClaude(prompt, maxTokens)
+  const parsed = JSON.parse(raw) as T
+  console.log(`Hermes: ${label} done in ${((Date.now() - start) / 1000).toFixed(1)}s`)
+  return parsed
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -279,15 +273,19 @@ export async function generateBriefing(): Promise<Briefing> {
   console.log(`\nHermes: starting full briefing generation for ${date}`)
   const totalStart = Date.now()
 
-  // Run all sections sequentially (each does its own web searches)
   const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
+  // Run sections with 20s delays to avoid rate limits
   const opening = await runSection<Opening>('opening', PROMPT_OPENING(), 600)
   await sleep(20000)
-  const bigResult = await runSection<{ stories: Story[] }>('big stories', PROMPT_BIG(), 6000)
+  const bigResult = await runSection<{ stories: Story[] }>('big stories', PROMPT_BIG(), 5000)
+  await sleep(20000)
   const healthResult = await runSection<{ stories: Story[] }>('healthcare', PROMPT_HEALTH(), 4000)
-  const innovationResult = await runSection<{ stories: Story[] }>('innovation', PROMPT_INNOVATION(), 3500)
-  const geoResult = await runSection<{ stories: Story[] }>('geopolitics', PROMPT_GEO(), 5000)
+  await sleep(20000)
+  const innovationResult = await runSection<{ stories: Story[] }>('innovation', PROMPT_INNOVATION(), 3000)
+  await sleep(20000)
+  const geoResult = await runSection<{ stories: Story[] }>('geopolitics', PROMPT_GEO(), 4000)
+  await sleep(20000)
   const localResult = await runSection<{ stories: Story[] }>('local', PROMPT_LOCAL(), 2000)
 
   // Collect globe data
@@ -329,5 +327,3 @@ export async function generateBriefing(): Promise<Briefing> {
   console.log(`Hermes: briefing complete in ${totalTime} minutes`)
   return briefing
 }
-// fixed
-// Mon Apr 13 01:15:36 PDT 2026
