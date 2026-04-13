@@ -241,7 +241,10 @@ async function callClaude(prompt: string, maxTokens: number): Promise<string> {
     .join('\n')
     .trim()
 
-  // Strip markdown fences if the model added them despite instructions
+  // Extract JSON even if model adds surrounding text
+  const jsonMatch = text.match(/{[\s\S]*}/)
+  if (jsonMatch) return jsonMatch[0].trim()
+  // Strip markdown fences
   return text
     .replace(/^```json\s*/m, '')
     .replace(/^```\s*/m, '')
