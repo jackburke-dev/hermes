@@ -264,7 +264,7 @@ async function runSection<T>(label: string, prompt: string, maxTokens: number): 
     } catch (err) {
       console.error(`Hermes: ${label} attempt ${attempt} failed:`, err)
       if (attempt === 3) throw err
-      await new Promise(r => setTimeout(r, 3000 * attempt))
+      await new Promise(r => setTimeout(r, 65000))
     }
   }
   throw new Error(`${label} failed after 3 attempts`)
