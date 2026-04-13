@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Hermes</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Hermes" />
+  <link rel="apple-touch-icon" href="/icon.png" />
+  <meta name="theme-color" content="#1a1410" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #faf8f4;
+      --bg-card: #f0ece2;
+      --bg-sidebar: #f5f1e8;
+      --border: #ddd5c5;
+      --text: #1a1410;
+      --text-muted: #888;
+      --text-faint: #bbb;
+      --text-body: #3a3028;
+      --accent: #C41E3A;
+      --sidebar-w: 210px;
+    }
+
+    .dark {
+      --bg: #0d0d0b;
+      --bg-card: #181714;
+      --bg-sidebar: #121210;
+      --border: #252320;
+      --text: #f0ebe0;
+      --text-muted: #777;
+      --text-faint: #444;
+      --text-body: #c8c0b0;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'EB Garamond', Georgia, serif; transition: background .3s, color .3s; }
+
+    @keyframes fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes pulse { 0%,100%{opacity:.25;transform:scale(.75)} 50%{opacity:1;transform:scale(1)} }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Layout ── */
+    #app { display: flex; flex-direction: column; min-height: 100vh; }
+
+    #header {
+      position: sticky; top: 0; z-index: 50;
+      height: 52px; padding: 0 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); border-bottom: 1px solid var(--border);
+      transition: background .3s, border-color .3s;
+    }
+
+    #header-left { display: flex; align-items: center; gap: 12px; }
+    #menu-btn { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:18px; line-height:1; padding:4px; }
+    #masthead { font-family:'Playfair Display',serif; font-size:11px; letter-spacing:.4em; color:var(--accent); text-transform:uppercase; }
+    #header-date { font-size:13px; color:var(--text-faint); margin-left:8px; }
+    #theme-btn {
+      background:none; border:1px solid var(--border); color:var(--text-muted);
+      width:30px; height:30px; border-radius:50%; cursor:pointer; font-size:14px;
+      display:flex; align-items:center; justify-content:center; transition:all .2s;
+    }
+    #theme-btn:hover { color:var(--text); }
+
+    /* ── Body layout ── */
+    #body { display:flex; flex:1; max-width:1200px; margin:0 auto; width:100%; }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w); flex-shrink:0;
+      padding: 28px 0;
+      border-right: 1px solid var(--border);
+      position: sticky; top:52px; height:calc(100vh - 52px); overflow-y:auto;
+      transition: background .3s, border-color .3s, transform .25s;
+    }
+
+    .nav-btn {
+      width:100%; text-align:left; padding:13px 22px;
+      background:transparent; border:none; border-left:3px solid transparent;
+      cursor:pointer; transition:all .15s; display:block;
+    }
+    .nav-btn:hover { background: rgba(196,30,58,.05); }
+    .nav-btn.active { border-left-color:var(--active-color,var(--accent)); background:rgba(196,30,58,.05); }
+    .nav-label { font-family:'Playfair Display',serif; font-size:15px; color:var(--text-muted); transition:color .15s; }
+    .nav-btn.active .nav-label, .nav-btn:hover .nav-label { color:var(--text); }
+    .nav-time { font-size:11px; color:var(--text-faint); margin-top:2px; }
+
+    #sidebar-footer { padding:24px 22px 0; border-top:1px solid var(--border); margin-top:16px; }
+    #sidebar-footer p { font-size:11px; color:var(--text-faint); letter-spacing:.12em; text-transform:uppercase; margin-bottom:14px; }
+    .sub-input {
+      width:100%; padding:7px 10px; margin-bottom:7px;
+      font-family:'EB Garamond',serif; font-size:13px;
+      background:var(--bg-card); border:1px solid var(--border); color:var(--text);
+      border-radius:2px; outline:none; transition:border-color .2s;
+    }
+    .sub-input:focus { border-color:var(--accent); }
+    .sub-btn {
+      width:100%; padding:8px; font-family:'EB Garamond',serif; font-size:13px;
+      background:var(--accent); color:#fff; border:none; border-radius:2px; cursor:pointer;
+      transition:background .2s; margin-bottom:8px;
+    }
+    .sub-btn:hover { background:#a01830; }
+    .sub-btn.secondary { background:var(--bg-card); color:var(--text-muted); border:1px solid var(--border); }
+    .sub-btn.secondary:hover { background:var(--border); }
+    .success-msg { font-size:12px; color:#1a6b4a; margin-bottom:6px; }
+
+    /* ── Main content ── */
+    #main { flex:1; padding:clamp(24px,4vw,52px); max-width:780px; min-height:calc(100vh - 52px); }
+
+    /* ── Opening ── */
+    #opening {
+      text-align:center; margin-bottom:52px;
+      padding-bottom:44px; border-bottom:1px solid var(--border);
+    }
+    .poem-line { font-family:'Playfair Display',serif; font-size:clamp(17px,2vw,21px); line-height:1.9; color:var(--text); font-style:italic; display:block; }
+    .attribution { font-size:13px; color:var(--text-faint); margin-top:18px; display:block; }
+    .bridge-divider { width:32px; height:1px; background:var(--accent); margin:24px auto; }
+    .bridge-text { font-size:16px; color:var(--text-muted); font-style:italic; }
+
+    /* ── Section heading ── */
+    .section-heading { margin-bottom:36px; }
+    .section-label { font-size:11px; font-weight:700; letter-spacing:.35em; text-transform:uppercase; margin-bottom:8px; }
+    .section-rule { height:2px; width:32px; }
+
+    /* ── Story ── */
+    .story { margin-bottom:52px; padding-bottom:52px; border-bottom:1px solid var(--border); animation:fadeUp .4s ease forwards; }
+    .story-hl-bar { padding-left:16px; margin-bottom:16px; }
+    .story-headline { font-family:'Playfair Display',serif; font-size:clamp(20px,2.5vw,26px); font-weight:700; color:var(--text); line-height:1.2; margin-bottom:7px; }
+    .story-sub { font-size:15px; color:var(--text-muted); font-style:italic; }
+    .story-meta { font-size:12px; color:var(--text-faint); letter-spacing:.1em; margin-bottom:22px; }
+
+    /* Body prose */
+    .story-body p { font-size:17px; line-height:1.9; color:var(--text-body); margin-bottom:20px; }
+    .story-body strong { color:var(--text); font-weight:600; }
+    .story-body em { font-style:italic; }
+    .story-body h2 { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--text); margin:36px 0 12px; }
+    .story-body h3 { font-family:'Playfair Display',serif; font-size:17px; font-style:italic; color:var(--text-muted); margin:28px 0 10px; }
+
+    .read-more-btn {
+      background:none; border:none; cursor:pointer;
+      font-family:'EB Garamond',serif; font-size:15px;
+      padding:6px 0; transition:color .2s; text-decoration:underline; text-underline-offset:3px;
+    }
+
+    /* Callout boxes */
+    .callout { padding:15px 18px; margin-top:24px; border-radius:2px; border-left:3px solid; }
+    .callout-label { font-size:11px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; margin-bottom:8px; }
+    .callout-text { font-size:15px; line-height:1.75; }
+    .callout.medicine { background:rgba(26,107,74,.07); border-color:#1a6b4a; }
+    .callout.medicine .callout-label { color:#1a6b4a; }
+    .callout.medicine .callout-text { color:#2a4a38; }
+    .callout.interview { background:rgba(26,58,107,.07); border-color:#1a3a6b; }
+    .callout.interview .callout-label { color:#1a3a6b; }
+    .callout.interview .callout-text { color:#2a3a5a; }
+    .watch-label { font-size:11px; font-weight:700; letter-spacing:.15em; text-transform:uppercase; color:var(--accent); margin:24px 0 12px; }
+    .watch-item { font-size:15px; color:var(--text-muted); padding-left:14px; border-left:2px solid #f0b0b8; margin-bottom:8px; }
+
+    /* ── Globe ── */
+    #globe-container { width:100%; height:clamp(300px,55vw,500px); border-radius:8px; overflow:hidden; background:#060f1e; position:relative; cursor:grab; }
+    #globe-container:active { cursor:grabbing; }
+    #globe-tooltip { position:absolute; background:rgba(0,0,0,.8); color:#fff; padding:4px 10px; border-radius:4px; font-size:13px; pointer-events:none; display:none; }
+    #globe-legend { display:flex; gap:20px; flex-wrap:wrap; margin-bottom:18px; }
+    .legend-dot { width:10px; height:10px; border-radius:2px; flex-shrink:0; }
+    .legend-label { font-size:12px; color:var(--text-muted); text-transform:capitalize; }
+    #country-chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+    .country-chip { padding:4px 13px; border-radius:16px; font-size:13px; cursor:pointer; border:1px solid; transition:background .15s; }
+    #selected-country { margin-top:20px; padding:18px 22px; background:var(--bg-card); border-radius:3px; border-left:3px solid; }
+    .sel-country-name { font-family:'Playfair Display',serif; font-size:20px; font-weight:700; color:var(--text); }
+    .sel-country-role { font-size:13px; text-transform:capitalize; letter-spacing:.1em; margin-top:4px; }
+    .sel-close { background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:20px; float:right; }
+
+    /* ── Loading / empty states ── */
+    #loading-state { padding:80px 0; text-align:center; }
+    .loading-title { font-family:'Playfair Display',serif; font-size:20px; font-style:italic; color:var(--text-faint); margin-bottom:16px; }
+    .dots { display:inline-flex; gap:6px; }
+    .dot { width:8px; height:8px; border-radius:50%; animation:pulse 1.2s ease-in-out infinite; }
+    #error-state { padding:80px 0; text-align:center; }
+    .error-title { font-family:'Playfair Display',serif; font-size:20px; color:var(--text-muted); margin-bottom:12px; }
+    .error-sub { font-size:15px; color:var(--text-faint); line-height:1.7; margin-bottom:24px; }
+    .error-link { color:var(--accent); font-size:15px; }
+
+    /* ── Mobile overlay sidebar ── */
+    @media (max-width: 720px) {
+      #sidebar {
+        position:fixed; top:52px; left:0; z-index:40;
+        transform:translateX(-100%);
+        background:var(--bg); height:calc(100vh - 52px);
+        box-shadow:4px 0 24px rgba(0,0,0,.12);
+      }
+      #sidebar.open { transform:translateX(0); }
+      #overlay { display:none; position:fixed; inset:0; top:52px; background:rgba(0,0,0,.4); z-index:39; }
+      #overlay.show { display:block; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <header id="header">
+    <div id="header-left">
+      <button id="menu-btn" aria-label="Menu">☰</button>
+      <span id="masthead">Hermes</span>
+      <span id="header-date"></span>
+    </div>
+    <button id="theme-btn" aria-label="Toggle theme">☾</button>
+  </header>
+
+  <div id="overlay"></div>
+
+  <div id="body">
+    <nav id="sidebar">
+      <button class="nav-btn active" data-section="big" style="--active-color:#C41E3A">
+        <div class="nav-label"><span style="color:#C41E3A;margin-right:7px">◈</span>Big Stories</div>
+        <div class="nav-time">~15 min</div>
+      </button>
+      <button class="nav-btn" data-section="health" style="--active-color:#1a6b4a">
+        <div class="nav-label"><span style="color:#1a6b4a;margin-right:7px">⊕</span>Healthcare</div>
+        <div class="nav-time">~7 min</div>
+      </button>
+      <button class="nav-btn" data-section="innovation" style="--active-color:#1a3a6b">
+        <div class="nav-label"><span style="color:#1a3a6b;margin-right:7px">◎</span>Innovation</div>
+        <div class="nav-time">~5 min</div>
+      </button>
+      <button class="nav-btn" data-section="geo" style="--active-color:#7a4a10">
+        <div class="nav-label"><span style="color:#7a4a10;margin-right:7px">◉</span>Geopolitics</div>
+        <div class="nav-time">~7 min</div>
+      </button>
+      <button class="nav-btn" data-section="local" style="--active-color:#6a1a7a">
+        <div class="nav-label"><span style="color:#6a1a7a;margin-right:7px">◌</span>LA & SoCal</div>
+        <div class="nav-time">~3 min</div>
+      </button>
+      <button class="nav-btn" data-section="globe" style="--active-color:#2a6a8a">
+        <div class="nav-label"><span style="color:#2a6a8a;margin-right:7px">🌐</span>Globe</div>
+        <div class="nav-time">interactive</div>
+      </button>
+
+      <div id="sidebar-footer">
+        <p>Delivered @ 5 AM PT</p>
+        <div id="email-form">
+          <input class="sub-input" type="email" id="email-input" placeholder="your@email.com" />
+          <button class="sub-btn" id="email-btn">Subscribe by email</button>
+        </div>
+        <div id="email-success" class="success-msg" style="display:none">✓ You're subscribed</div>
+        <button class="sub-btn secondary" id="push-btn">Enable push notifications</button>
+        <div id="push-success" class="success-msg" style="display:none">✓ Push notifications on</div>
+      </div>
+    </nav>
+
+    <main id="main">
+      <div id="loading-state">
+        <p class="loading-title">Loading your briefing…</p>
+        <div class="dots">
+          <div class="dot" style="background:#C41E3A;animation-delay:0s"></div>
+          <div class="dot" style="background:#C41E3A;animation-delay:.2s"></div>
+          <div class="dot" style="background:#C41E3A;animation-delay:.4s"></div>
+        </div>
+      </div>
+      <div id="error-state" style="display:none">
+        <p class="error-title">No briefing yet.</p>
+        <p class="error-sub">The 5 AM generation hasn't run,<br>or something went wrong.</p>
+        <a id="generate-link" href="#" class="error-link">Generate now →</a>
+      </div>
+      <div id="content" style="display:none"></div>
+    </main>
+  </div>
+</div>
+
+<script type="module">
+// ── State ──────────────────────────────────────────────────────────
+let briefing = null
+let activeSection = 'big'
+let dark = false
+let expandedStories = new Set()
+
+const SECTION_META = {
+  big:        { label:'The Big Stories',    color:'#C41E3A' },
+  health:     { label:'Healthcare & Medicine', color:'#1a6b4a' },
+  innovation: { label:'Innovation',          color:'#1a3a6b' },
+  geo:        { label:'Geopolitics',         color:'#7a4a10' },
+  local:      { label:'LA & SoCal',          color:'#6a1a7a' },
+  globe:      { label:'Globe',               color:'#2a6a8a' },
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+  setupTheme()
+  setupNav()
+  setupHeader()
+  setupSubscriptions()
+  registerSW()
+  await loadBriefing()
+}
+
+function setupTheme() {
+  const saved = localStorage.getItem('hermes-theme')
+  if (saved === 'dark') { dark = true; document.documentElement.classList.add('dark') }
+  document.getElementById('theme-btn').textContent = dark ? '☀' : '☾'
+  document.getElementById('theme-btn').addEventListener('click', () => {
+    dark = !dark
+    document.documentElement.classList.toggle('dark', dark)
+    localStorage.setItem('hermes-theme', dark ? 'dark' : 'light')
+    document.getElementById('theme-btn').textContent = dark ? '☀' : '☾'
+    if (activeSection === 'globe') renderGlobe()
+  })
+}
+
+function setupNav() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      activeSection = btn.dataset.section
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'))
+      btn.classList.add('active')
+      closeSidebar()
+      if (briefing) renderSection()
+    })
+  })
+
+  const menuBtn = document.getElementById('menu-btn')
+  const sidebar = document.getElementById('sidebar')
+  const overlay = document.getElementById('overlay')
+  menuBtn.addEventListener('click', () => {
+    sidebar.classList.toggle('open')
+    overlay.classList.toggle('show')
+  })
+  overlay.addEventListener('click', closeSidebar)
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open')
+  document.getElementById('overlay').classList.remove('show')
+}
+
+function setupHeader() {
+  const today = new Date().toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric', year:'numeric' })
+  document.getElementById('header-date').textContent = `· ${today}`
+}
+
+function setupSubscriptions() {
+  // Email
+  document.getElementById('email-btn').addEventListener('click', async () => {
+    const email = document.getElementById('email-input').value
+    if (!email.includes('@')) return
+    await fetch('/api/subscribe/email', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email}) })
+    document.getElementById('email-form').style.display = 'none'
+    document.getElementById('email-success').style.display = 'block'
+  })
+
+  // Push
+  const pushBtn = document.getElementById('push-btn')
+  if (!('PushManager' in window)) { pushBtn.style.display = 'none'; return }
+  pushBtn.addEventListener('click', async () => {
+    try {
+      const keyRes = await fetch('/api/vapid-key')
+      const { key } = await keyRes.json()
+      const reg = await navigator.serviceWorker.ready
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly:true, applicationServerKey:key })
+      await fetch('/api/subscribe/push', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({subscription:sub}) })
+      pushBtn.style.display = 'none'
+      document.getElementById('push-success').style.display = 'block'
+    } catch(e) { console.error('Push subscribe failed:', e) }
+  })
+}
+
+function registerSW() {
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(console.error)
+}
+
+// ── Load briefing ──────────────────────────────────────────────────
+async function loadBriefing() {
+  try {
+    const res = await fetch('/api/briefing')
+    if (!res.ok) throw new Error('Not found')
+    briefing = await res.json()
+    document.getElementById('loading-state').style.display = 'none'
+    document.getElementById('content').style.display = 'block'
+    renderSection()
+  } catch {
+    document.getElementById('loading-state').style.display = 'none'
+    document.getElementById('error-state').style.display = 'block'
+    const secret = localStorage.getItem('hermesSecret') || prompt('Enter your CRON_SECRET to generate a briefing:') || ''
+    if (secret) localStorage.setItem('hermesSecret', secret)
+    document.getElementById('generate-link').href = `/api/generate?secret=${secret}`
+  }
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function renderSection() {
+  const content = document.getElementById('content')
+  content.innerHTML = ''
+
+  if (activeSection === 'globe') {
+    renderGlobeSection(content)
+    return
+  }
+
+  const meta = SECTION_META[activeSection]
+  const stories = briefing.sections[activeSection] || []
+
+  // Opening (every section)
+  content.appendChild(renderOpening())
+
+  // Section heading
+  const heading = document.createElement('div')
+  heading.className = 'section-heading'
+  heading.innerHTML = `
+    <p class="section-label" style="color:${meta.color}">${meta.label}</p>
+    <div class="section-rule" style="background:${meta.color}"></div>`
+  content.appendChild(heading)
+
+  if (!stories.length) {
+    const empty = document.createElement('p')
+    empty.style.cssText = 'color:var(--text-faint);font-style:italic;padding:40px 0'
+    empty.textContent = 'No stories in this section today.'
+    content.appendChild(empty)
+    return
+  }
+
+  stories.forEach(story => content.appendChild(renderStory(story, meta.color)))
+}
+
+function renderOpening() {
+  const o = briefing.opening
+  const div = document.createElement('div')
+  div.id = 'opening'
+  const lines = o.content.split('\n').map(l => `<span class="poem-line">${l}</span>`).join('')
+  div.innerHTML = `
+    ${lines}
+    ${o.attribution ? `<span class="attribution">— ${o.attribution}</span>` : ''}
+    <div class="bridge-divider"></div>
+    <p class="bridge-text">${o.bridge}</p>`
+  return div
+}
+
+function renderStory(story, color) {
+  const isExpanded = expandedStories.has(story.id)
+  const article = document.createElement('article')
+  article.className = 'story'
+  article.id = `story-${story.id}`
+
+  const firstPara = story.body.split('\n\n')[0] || ''
+
+  article.innerHTML = `
+    <div class="story-hl-bar" style="border-left:3px solid ${color}">
+      <h2 class="story-headline">${story.headline}</h2>
+      <p class="story-sub">${story.subheadline}</p>
+    </div>
+    <p class="story-meta">${story.readingMinutes} MIN READ</p>
+    <div class="story-body">
+      ${isExpanded ? renderBody(story.body) : `<p>${mdInline(firstPara)}</p>`}
+    </div>
+    ${!isExpanded ? `<button class="read-more-btn" style="color:${color}" data-id="${story.id}">Continue reading →</button>` : ''}
+    ${isExpanded ? renderExtras(story) : ''}
+  `
+
+  if (!isExpanded) {
+    article.querySelector('.read-more-btn').addEventListener('click', () => {
+      expandedStories.add(story.id)
+      renderSection()
+      document.getElementById(`story-${story.id}`)?.scrollIntoView({ behavior:'smooth', block:'start' })
+    })
+  }
+
+  return article
+}
+
+function renderBody(body) {
+  return body.split('\n\n')
+    .map(p => p.trim())
+    .filter(Boolean)
+    .map(p => {
+      if (p.startsWith('## ')) return `<h2>${p.slice(3)}</h2>`
+      if (p.startsWith('### ')) return `<h3>${p.slice(4)}</h3>`
+      return `<p>${mdInline(p)}</p>`
+    })
+    .join('')
+}
+
+function renderExtras(story) {
+  let html = ''
+  if (story.medicineNote) html += `
+    <div class="callout medicine">
+      <p class="callout-label">Medicine & Health</p>
+      <p class="callout-text">${story.medicineNote}</p>
+    </div>`
+  if (story.interviewNote) html += `
+    <div class="callout interview">
+      <p class="callout-label">For Your Interviews</p>
+      <p class="callout-text">${story.interviewNote}</p>
+    </div>`
+  if (story.watchFor?.length) html += `
+    <p class="watch-label">What to Watch</p>
+    ${story.watchFor.map(w => `<p class="watch-item">→ ${w}</p>`).join('')}`
+  return html
+}
+
+function mdInline(text) {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+}
+
+// ── Globe ──────────────────────────────────────────────────────────
+const ROLE_COLORS = { primary:'#C41E3A', actor:'#E88A2E', affected:'#5A8AC4' }
+
+function renderGlobeSection(container) {
+  const locs = briefing.globe?.locations || []
+  const conns = briefing.globe?.connections || []
+
+  container.innerHTML = `
+    <div style="margin-bottom:28px">
+      <p class="section-label" style="color:#2a6a8a;margin-bottom:8px">🌐 Globe · Today's Stories</p>
+      <div class="section-rule" style="background:#2a6a8a;margin-bottom:16px"></div>
+      <p style="font-size:14px;color:var(--text-faint);font-style:italic">Drag to rotate · Scroll to zoom · Tap a country for details</p>
+    </div>
+    <div id="globe-legend">
+      ${Object.entries(ROLE_COLORS).map(([role,color]) => `
+        <div style="display:flex;align-items:center;gap:7px">
+          <div class="legend-dot" style="background:${color}"></div>
+          <span class="legend-label">${role}</span>
+        </div>`).join('')}
+    </div>
+    <div id="globe-container">
+      <div id="globe-tooltip"></div>
+    </div>
+    <div id="selected-country" style="display:none"></div>
+    <div id="country-chips">
+      ${locs.map(loc => `
+        <div class="country-chip" data-code="${loc.countryCode}"
+          style="color:${ROLE_COLORS[loc.role]||'#888'};border-color:${ROLE_COLORS[loc.role]||'#888'}">
+          ${loc.country}
+        </div>`).join('')}
+    </div>`
+
+  container.querySelectorAll('.country-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const loc = locs.find(l => l.countryCode === chip.dataset.code)
+      if (loc) showSelectedCountry(loc)
+    })
+  })
+
+  renderGlobe(locs, conns)
+}
+
+function showSelectedCountry(loc) {
+  const el = document.getElementById('selected-country')
+  const color = ROLE_COLORS[loc.role] || '#888'
+  el.style.display = 'block'
+  el.style.borderLeftColor = color
+  el.innerHTML = `
+    <button class="sel-close" onclick="document.getElementById('selected-country').style.display='none'">×</button>
+    <p class="sel-country-name">${loc.country}</p>
+    <p class="sel-country-role" style="color:${color}">${loc.role} in today's news</p>`
+}
+
+async function renderGlobe(locs, conns) {
+  const container = document.getElementById('globe-container')
+  if (!container) return
+
+  const THREE = await import('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js')
+  const W = container.clientWidth, H = container.clientHeight
+
+  const scene = new THREE.Scene()
+  const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 1000)
+  camera.position.z = 2.8
+
+  const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true })
+  renderer.setSize(W, H)
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2))
+  renderer.setClearColor(0x000000, 0)
+  container.appendChild(renderer.domElement)
+
+  const globeGroup = new THREE.Group()
+  scene.add(globeGroup)
+
+  // Ocean
+  const oceanMat = new THREE.MeshPhongMaterial({ color: dark ? 0x0a1a2e : 0x1a5a9a, shininess:60 })
+  globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(1,64,64), oceanMat))
+
+  // Atmosphere
+  const atmMat = new THREE.MeshPhongMaterial({ color:0x4488cc, transparent:true, opacity:.07, side:THREE.BackSide })
+  globeGroup.add(new THREE.Mesh(new THREE.SphereGeometry(1.02,64,64), atmMat))
+
+  // Lighting
+  scene.add(new THREE.AmbientLight(0xffffff, .65))
+  const sun = new THREE.DirectionalLight(0xffffff, 1.1)
+  sun.position.set(5, 3, 5)
+  scene.add(sun)
+
+  // Build location lookup by countryCode
+  const locByCode = {}
+  for (const loc of (locs||[])) locByCode[loc.countryCode] = loc
+
+  // Load country borders
+  try {
+    const topo = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json').then(r=>r.json())
+    const { feature } = await import('https://cdn.jsdelivr.net/npm/topojson-client@3/dist/topojson-client.min.js')
+    const geojson = feature(topo, topo.objects.countries)
+
+    for (const feat of geojson.features) {
+      const iso = feat.id  // numeric ISO
+      // Try to find by comparing — world-atlas uses numeric codes, we have alpha-3
+      // We do a basic lat/lng match by checking our locations
+      const loc = locByCode[iso] // won't match directly, handled below
+      const isHighlighted = false // will handle via dots fallback
+      const color = new THREE.Color(dark ? 0x2a3d2a : 0x3a6a3a)
+      drawPolygon(feat.geometry, globeGroup, THREE, color, 0, null)
+    }
+  } catch(e) {
+    console.warn('Globe: could not load country borders, using dots', e)
+  }
+
+  // Draw highlighted country dots (always reliable)
+  for (const loc of (locs||[])) {
+    const color = new THREE.Color(ROLE_COLORS[loc.role] || '#888')
+    const pos = latLng(loc.lat, loc.lng, 1.015, THREE)
+    // Pulsing dot
+    const geo = new THREE.SphereGeometry(0.025, 10, 10)
+    const mat = new THREE.MeshBasicMaterial({ color })
+    const mesh = new THREE.Mesh(geo, mat)
+    mesh.position.copy(pos)
+    mesh.userData.location = loc
+    globeGroup.add(mesh)
+
+    // Ring around dot
+    const ringGeo = new THREE.RingGeometry(0.03, 0.05, 24)
+    const ringMat = new THREE.MeshBasicMaterial({ color, side:THREE.DoubleSide, transparent:true, opacity:.6 })
+    const ring = new THREE.Mesh(ringGeo, ringMat)
+    ring.position.copy(pos)
+    ring.lookAt(new THREE.Vector3(0,0,0).sub(pos.clone().normalize()))
+    globeGroup.add(ring)
+  }
+
+  // Connection arcs
+  for (const conn of (conns||[])) {
+    const from = locs?.find(l => l.countryCode === conn.from)
+    const to = locs?.find(l => l.countryCode === conn.to)
+    if (from && to) drawArc(from, to, globeGroup, THREE)
+  }
+
+  // Interaction
+  const tooltip = document.getElementById('globe-tooltip')
+  const raycaster = new THREE.Raycaster()
+  const mouse = new THREE.Vector2()
+  let isDragging = false, rotVelY = 0.003
+  let prevX = 0, prevY = 0
+
+  container.addEventListener('mousemove', e => {
+    const rect = container.getBoundingClientRect()
+    mouse.x = ((e.clientX - rect.left) / W) * 2 - 1
+    mouse.y = -((e.clientY - rect.top) / H) * 2 + 1
+    raycaster.setFromCamera(mouse, camera)
+    const hits = raycaster.intersectObjects(globeGroup.children, true)
+    const hit = hits.find(h => h.object.userData?.location)
+    if (hit) {
+      tooltip.textContent = hit.object.userData.location.country
+      tooltip.style.display = 'block'
+      tooltip.style.left = (e.clientX - container.getBoundingClientRect().left + 12) + 'px'
+      tooltip.style.top = (e.clientY - container.getBoundingClientRect().top - 8) + 'px'
+      container.style.cursor = 'pointer'
+    } else {
+      tooltip.style.display = 'none'
+      container.style.cursor = isDragging ? 'grabbing' : 'grab'
+    }
+    if (isDragging) {
+      rotVelY = (e.clientX - prevX) * 0.005
+      globeGroup.rotation.y += rotVelY
+      globeGroup.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, globeGroup.rotation.x + (e.clientY - prevY) * 0.003))
+      prevX = e.clientX; prevY = e.clientY
+    }
+  })
+
+  container.addEventListener('mousedown', e => { isDragging = true; prevX = e.clientX; prevY = e.clientY })
+  window.addEventListener('mouseup', () => { isDragging = false })
+
+  container.addEventListener('click', e => {
+    const rect = container.getBoundingClientRect()
+    mouse.x = ((e.clientX - rect.left) / W) * 2 - 1
+    mouse.y = -((e.clientY - rect.top) / H) * 2 + 1
+    raycaster.setFromCamera(mouse, camera)
+    const hits = raycaster.intersectObjects(globeGroup.children, true)
+    const hit = hits.find(h => h.object.userData?.location)
+    if (hit) showSelectedCountry(hit.object.userData.location)
+  })
+
+  // Touch
+  let lastTX = 0, lastTY = 0
+  container.addEventListener('touchstart', e => { lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY }, {passive:true})
+  container.addEventListener('touchmove', e => {
+    globeGroup.rotation.y += (e.touches[0].clientX - lastTX) * 0.005
+    globeGroup.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, globeGroup.rotation.x + (e.touches[0].clientY - lastTY) * 0.003))
+    lastTX = e.touches[0].clientX; lastTY = e.touches[0].clientY
+  }, {passive:true})
+
+  container.addEventListener('wheel', e => {
+    camera.position.z = Math.max(1.8, Math.min(5, camera.position.z + e.deltaY * 0.005))
+  }, {passive:true})
+
+  window.addEventListener('resize', () => {
+    const W2 = container.clientWidth, H2 = container.clientHeight
+    camera.aspect = W2/H2; camera.updateProjectionMatrix()
+    renderer.setSize(W2, H2)
+  })
+
+  const animate = () => {
+    requestAnimationFrame(animate)
+    if (!isDragging) {
+      globeGroup.rotation.y += rotVelY
+      rotVelY *= 0.98
+      if (Math.abs(rotVelY) < 0.0003) rotVelY = 0.0003
+    }
+    renderer.render(scene, camera)
+  }
+  animate()
+}
+
+function latLng(lat, lng, r, THREE) {
+  const phi = (90 - lat) * Math.PI / 180
+  const theta = (lng + 180) * Math.PI / 180
+  return new THREE.Vector3(
+    -r * Math.sin(phi) * Math.cos(theta),
+     r * Math.cos(phi),
+     r * Math.sin(phi) * Math.sin(theta)
+  )
+}
+
+function drawArc(from, to, group, THREE) {
+  const s = latLng(from.lat, from.lng, 1.01, THREE)
+  const e = latLng(to.lat, to.lng, 1.01, THREE)
+  const mid = s.clone().add(e).multiplyScalar(0.5).normalize().multiplyScalar(1.45)
+  const curve = new THREE.QuadraticBezierCurve3(s, mid, e)
+  const pts = curve.getPoints(60)
+  const geo = new THREE.BufferGeometry().setFromPoints(pts)
+  const mat = new THREE.LineBasicMaterial({ color:0xffaa44, transparent:true, opacity:.65 })
+  group.add(new THREE.Line(geo, mat))
+}
+
+function drawPolygon(geometry, group, THREE, color, elevation, loc) {
+  const r = 1 + (elevation || 0)
+  const rings = geometry.type === 'Polygon' ? geometry.coordinates
+    : geometry.type === 'MultiPolygon' ? geometry.coordinates.flat()
+    : []
+  for (const ring of rings) {
+    const pts = ring.map(([lng, lat]) => latLng(lat, lng, r, THREE))
+    if (pts.length < 2) continue
+    const geo = new THREE.BufferGeometry().setFromPoints(pts)
+    const mat = new THREE.LineBasicMaterial({ color, transparent:!elevation, opacity:elevation?1:.35 })
+    const line = new THREE.Line(geo, mat)
+    if (loc) line.userData.location = loc
+    group.add(line)
+  }
+}
+
+// ── Start ──────────────────────────────────────────────────────────
+init()
+</script>
+</body>
+</html>
