@@ -323,3 +323,4 @@ export async function generateBriefing(): Promise<Briefing> {
   console.log(`Hermes: briefing complete in ${totalTime} minutes`)
   return briefing
 }
+// fixed
