@@ -231,7 +231,7 @@ async function callClaude(prompt: string, maxTokens: number): Promise<string> {
   const response = await client.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: maxTokens,
-    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' }],
+    tools: [{ type: 'web_search_20250305' as const, name: 'web_search' as const }],
     messages: [{ role: 'user', content: prompt }],
   })
 
