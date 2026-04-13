@@ -277,7 +277,10 @@ export async function generateBriefing(): Promise<Briefing> {
   const totalStart = Date.now()
 
   // Run all sections sequentially (each does its own web searches)
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
   const opening = await runSection<Opening>('opening', PROMPT_OPENING(), 600)
+  await sleep(20000)
   const bigResult = await runSection<{ stories: Story[] }>('big stories', PROMPT_BIG(), 6000)
   const healthResult = await runSection<{ stories: Story[] }>('healthcare', PROMPT_HEALTH(), 4000)
   const innovationResult = await runSection<{ stories: Story[] }>('innovation', PROMPT_INNOVATION(), 3500)
